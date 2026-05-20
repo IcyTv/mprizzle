@@ -15,9 +15,6 @@ pub enum MprisError {
     #[error("Failed to connect to D-BUS: {0}")]
     FailedToConnectDbus(String),
 
-    #[error("Failed to lock the mpris shared connection: {0}.")]
-    FailedToLockSharedConnection(String),
-
     #[error("Failed to receive mpris event.")]
     FailedToRecvEvent,
 

@@ -32,9 +32,7 @@ impl ProxyError {
 pub async fn create_dbus_proxy(
     shared_connection: Arc<Mutex<Connection>>,
 ) -> MprisResult<Proxy<'static>> {
-    let connection = shared_connection
-        .try_lock()
-        .map_err(|err| MprisError::FailedToLockSharedConnection(err.to_string()))?;
+    let connection = shared_connection.lock().await;
 
     let proxy = Proxy::new(
         &*connection,
@@ -53,9 +51,7 @@ pub async fn create_properties_proxy(
     shared_connection: Arc<Mutex<Connection>>,
     bus: &str,
 ) -> MprisResult<Proxy<'static>> {
-    let connection = shared_connection
-        .try_lock()
-        .map_err(|err| MprisError::FailedToLockSharedConnection(err.to_string()))?;
+    let connection = shared_connection.lock().await;
 
     let properties_proxy = Proxy::new(
         &*connection,
@@ -74,9 +70,7 @@ pub async fn create_player_proxy(
     shared_connection: Arc<Mutex<Connection>>,
     bus: &str,
 ) -> MprisResult<Proxy<'static>> {
-    let connection = shared_connection
-        .try_lock()
-        .map_err(|err| MprisError::FailedToLockSharedConnection(err.to_string()))?;
+    let connection = shared_connection.lock().await;
 
     let proxy: Proxy = zbus::proxy::Builder::new(&*connection)
         .destination(bus.to_string())
