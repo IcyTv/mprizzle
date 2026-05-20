@@ -192,4 +192,25 @@ impl<'a> PlayerMetadata<'a> {
             })
             .unwrap_or(Ok(None))
     }
+
+    /// Access to arbitrary metadata
+    pub fn get<T>(&self, field: &str) -> MprisResult<Option<T>>
+    where
+        T: TryFrom<zvariant::Value<'a>>,
+        <T as TryFrom<zvariant::Value<'a>>>::Error: Into<zvariant::Error>,
+    {
+        self.metadata
+            .get(field)
+            .map(|val| match T::try_from(val.clone()) {
+                Ok(val) => Ok(Some(val)),
+                _ => Err(MprisError::MetadataErr(
+                    MetadataError::MetadataInvalidFieldType {
+                        field: field.to_string(),
+                        expected: std::any::type_name::<T>().to_string(),
+                        got: val.value_signature().to_string(),
+                    },
+                )),
+            })
+            .unwrap_or(Ok(None))
+    }
 }
