@@ -29,13 +29,9 @@ impl ProxyError {
 }
 
 /// Proxy for "org.freedesktop.DBUS" interface.
-pub async fn create_dbus_proxy(
-    shared_connection: Arc<Mutex<Connection>>,
-) -> MprisResult<Proxy<'static>> {
-    let connection = shared_connection.lock().await;
-
+pub async fn create_dbus_proxy(connection: &Connection) -> MprisResult<Proxy<'static>> {
     let proxy = Proxy::new(
-        &*connection,
+        connection,
         "org.freedesktop.DBus",
         "/org/freedesktop/DBus",
         "org.freedesktop.DBus",
@@ -48,13 +44,11 @@ pub async fn create_dbus_proxy(
 
 /// Creates a proxy for "org.freedesktop.DBus.Properties".
 pub async fn create_properties_proxy(
-    shared_connection: Arc<Mutex<Connection>>,
+    connection: &Connection,
     bus: &str,
 ) -> MprisResult<Proxy<'static>> {
-    let connection = shared_connection.lock().await;
-
     let properties_proxy = Proxy::new(
-        &*connection,
+        connection,
         bus.to_string(),
         DBUS_MPRIS_INTERFACE_PATH,
         "org.freedesktop.DBus.Properties",
@@ -67,12 +61,10 @@ pub async fn create_properties_proxy(
 
 /// Proxy for "org.mpris.MediaPlayer2.Player" interface.
 pub async fn create_player_proxy(
-    shared_connection: Arc<Mutex<Connection>>,
+    connection: &Connection,
     bus: &str,
 ) -> MprisResult<Proxy<'static>> {
-    let connection = shared_connection.lock().await;
-
-    let proxy: Proxy = zbus::proxy::Builder::new(&*connection)
+    let proxy: Proxy = zbus::proxy::Builder::new(connection)
         .destination(bus.to_string())
         .map_err(|err| ProxyError::other(err))?
         .path(DBUS_MPRIS_INTERFACE_PATH)

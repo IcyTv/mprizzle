@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use crate::player::MprisPlayer;
 use crate::proxies::{self, DBUS_MPRIS_INTERFACE_NAME, ProxyError};
 use crate::{MetadataError, identity};
 use crate::{identity::PlayerIdentity, player::PlayerError};
 use futures::StreamExt;
-use tokio::sync::{Mutex, broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc};
 use zbus::Connection;
 
 /// Represents errors that can occur in MPRIS operations.
@@ -95,7 +95,7 @@ pub enum MprisEvent {
 #[derive(Debug)]
 pub struct Mpris {
     /// The underlying connection to D-Bus.
-    connection: Arc<Mutex<Connection>>,
+    connection: Connection,
 
     /// Event sender.
     sender: mpsc::UnboundedSender<MprisResult<MprisEvent>>,
@@ -106,11 +106,9 @@ pub struct Mpris {
 
 impl Mpris {
     pub async fn new() -> MprisResult<Self> {
-        let session = Connection::session()
+        let connection = Connection::session()
             .await
             .map_err(|err| MprisError::FailedToConnectDbus(err.to_string()))?;
-
-        let connection = Arc::new(Mutex::new(session));
 
         let (sender, receiver) = mpsc::unbounded_channel();
 
@@ -133,8 +131,7 @@ impl Mpris {
 
         tokio::spawn(async move {
             // Creates a new dbus proxy.
-            let shared_conn = Arc::clone(&shared_connection);
-            let dbus_proxy = match proxies::create_dbus_proxy(shared_conn).await {
+            let dbus_proxy = match proxies::create_dbus_proxy(&shared_connection).await {
                 Ok(dbus_proxy) => dbus_proxy,
                 Err(err) => {
                     event_sender.send(Err(err)).unwrap();
@@ -184,8 +181,7 @@ impl Mpris {
             // Loop over the existing players identity to add it on shared players and send out the PlayerAttached event.
             for identity in existing_identities {
                 // Creates the player.
-                let shared_conn = Arc::clone(&shared_connection);
-                let player = match MprisPlayer::new(shared_conn, identity.clone()).await {
+                let player = match MprisPlayer::new(&shared_connection, identity.clone()).await {
                     Ok(player) => player,
                     Err(err) => {
                         event_sender.send(Err(err.into())).unwrap();
@@ -231,8 +227,7 @@ impl Mpris {
                                 };
 
                                 // Creates the player itself with the shared connection.
-                                let shared_conn = Arc::clone(&shared_connection);
-                                let player = match MprisPlayer::new(shared_conn, identity.clone()).await {
+                                let player = match MprisPlayer::new(&shared_connection, identity.clone()).await {
                                     Ok(player) => player,
                                     Err(err) => {
                                         event_sender.send(Err(err.into())).unwrap();
@@ -282,8 +277,8 @@ impl Mpris {
     }
 
     /// Gets the shared mpris connection.
-    pub fn connection(&self) -> Arc<Mutex<Connection>> {
-        Arc::clone(&self.connection)
+    pub fn connection(&self) -> Connection {
+        self.connection.clone()
     }
 
     /// Gets the cloned event sender.

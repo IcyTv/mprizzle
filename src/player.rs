@@ -92,7 +92,7 @@ impl PlayerError {
 #[derive(Debug)]
 pub struct MprisPlayer {
     /// A shared D-Bus connection.
-    connection: Arc<Mutex<Connection>>,
+    connection: Connection,
 
     /// Player proxy.
     player_proxy: Proxy<'static>,
@@ -102,15 +102,11 @@ pub struct MprisPlayer {
 }
 
 impl MprisPlayer {
-    pub async fn new(
-        shared_connection: Arc<Mutex<Connection>>,
-        identity: PlayerIdentity,
-    ) -> MprisResult<Self> {
-        let shared_conn = Arc::clone(&shared_connection);
-        let player_proxy = proxies::create_player_proxy(shared_conn, identity.bus()).await?;
+    pub async fn new(connection: &Connection, identity: PlayerIdentity) -> MprisResult<Self> {
+        let player_proxy = proxies::create_player_proxy(connection, identity.bus()).await?;
 
         Ok(Self {
-            connection: shared_connection,
+            connection: connection.clone(),
             player_proxy,
             identity,
         })
@@ -127,19 +123,17 @@ impl MprisPlayer {
 
         tokio::spawn(async move {
             // Creates a properties proxy.
-            let shared_conn = Arc::clone(&shared_connection);
-            let properties_proxy = match create_properties_proxy(shared_conn, identity.bus()).await
-            {
-                Ok(properties_proxy) => properties_proxy,
-                Err(err) => {
-                    event_sender.send(Err(err.into())).unwrap();
-                    return;
-                }
-            };
+            let properties_proxy =
+                match create_properties_proxy(&shared_connection, identity.bus()).await {
+                    Ok(properties_proxy) => properties_proxy,
+                    Err(err) => {
+                        event_sender.send(Err(err.into())).unwrap();
+                        return;
+                    }
+                };
 
             // Creates a player proxy.
-            let shared_conn = Arc::clone(&shared_connection);
-            let player_proxy = match create_player_proxy(shared_conn, identity.bus()).await {
+            let player_proxy = match create_player_proxy(&shared_connection, identity.bus()).await {
                 Ok(player_proxy) => player_proxy,
                 Err(err) => {
                     event_sender.send(Err(err.into())).unwrap();
@@ -592,8 +586,8 @@ impl MprisPlayer {
     }
 
     /// Gets the shared mpris connection.
-    fn connection(&self) -> Arc<Mutex<Connection>> {
-        Arc::clone(&self.connection)
+    fn connection(&self) -> Connection {
+        self.connection.clone()
     }
 
     /// Gets the identity of the player.
