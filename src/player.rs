@@ -261,7 +261,7 @@ impl MprisPlayer {
     }
 
     /// Metadata of player.
-    pub async fn metadata(&self) -> MprisResult<PlayerMetadata> {
+    pub async fn metadata(&self) -> MprisResult<PlayerMetadata<'_>> {
         let metadata: HashMap<String, zvariant::Value> = self
             .player_proxy
             .get_property("Metadata")
@@ -578,6 +578,17 @@ impl MprisPlayer {
             .map_err(|err| PlayerError::failed_to_get_prop("CanControl", err.to_string()))?;
 
         Ok(can_control)
+    }
+
+    /// Get the desktop entry name of the player, without the `.desktop` extension
+    pub async fn desktop_entry(&self) -> MprisResult<String> {
+        let desktop_entry: String = self
+            .player_proxy
+            .get_property("DesktopEntry")
+            .await
+            .map_err(|err| PlayerError::failed_to_get_prop("DesktioEntry", err.to_string()))?;
+
+        Ok(desktop_entry)
     }
 
     /// Gets the shared mpris connection.
