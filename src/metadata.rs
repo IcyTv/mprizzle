@@ -172,4 +172,24 @@ impl<'a> PlayerMetadata<'a> {
             })
             .unwrap_or(Ok(None))
     }
+
+    /// Metadata xesam:url
+    ///
+    /// Returns Err when xesam::url is a different type.
+    /// Returns None when xesam:url doesn't exist
+    pub fn url(&self) -> MprisResult<Option<String>> {
+        self.metadata
+            .get("xesam:url")
+            .map(|url| match url {
+                zvariant::Value::Str(url) => Ok(Some(url.to_string())),
+                _ => Err(MprisError::MetadataErr(
+                    MetadataError::MetadataInvalidFieldType {
+                        field: "xesam:url".to_string(),
+                        expected: "s".into(),
+                        got: url.value_signature().to_string(),
+                    },
+                )),
+            })
+            .unwrap_or(Ok(None))
+    }
 }
