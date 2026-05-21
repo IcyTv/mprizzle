@@ -59,6 +59,23 @@ pub async fn create_properties_proxy(
     Ok(properties_proxy)
 }
 
+/// Proxy for "org.mpris.MediaPlayer2" interface.
+pub async fn create_mpris_proxy(connection: &Connection, bus: &str) -> MprisResult<Proxy<'static>> {
+    let proxy: Proxy = zbus::proxy::Builder::new(connection)
+        .destination(bus.to_string())
+        .map_err(|err| ProxyError::other(err))?
+        .path(DBUS_MPRIS_INTERFACE_PATH)
+        .map_err(|err| ProxyError::other(err))?
+        .interface(DBUS_MPRIS_INTERFACE_NAME)
+        .map_err(|err| ProxyError::other(err))?
+        .cache_properties(zbus::proxy::CacheProperties::No)
+        .build()
+        .await
+        .map_err(|_| ProxyError::failed_to_create(DBUS_MPRIS_INTERFACE_NAME))?;
+
+    Ok(proxy)
+}
+
 /// Proxy for "org.mpris.MediaPlayer2.Player" interface.
 pub async fn create_player_proxy(
     connection: &Connection,

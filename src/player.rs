@@ -97,17 +97,24 @@ pub struct MprisPlayer {
     /// Player proxy.
     player_proxy: Proxy<'static>,
 
+    /// Root MPRIS proxy.
+    mpris_proxy: Proxy<'static>,
+
     /// The identity of this player.
     identity: PlayerIdentity,
 }
 
 impl MprisPlayer {
     pub async fn new(connection: &Connection, identity: PlayerIdentity) -> MprisResult<Self> {
-        let player_proxy = proxies::create_player_proxy(connection, identity.bus()).await?;
+        let (mpris_proxy, player_proxy) = tokio::try_join!(
+            proxies::create_mpris_proxy(connection, identity.bus()),
+            proxies::create_player_proxy(connection, identity.bus()),
+        )?;
 
         Ok(Self {
             connection: connection.clone(),
             player_proxy,
+            mpris_proxy,
             identity,
         })
     }
@@ -577,10 +584,10 @@ impl MprisPlayer {
     /// Get the desktop entry name of the player, without the `.desktop` extension
     pub async fn desktop_entry(&self) -> MprisResult<String> {
         let desktop_entry: String = self
-            .player_proxy
+            .mpris_proxy
             .get_property("DesktopEntry")
             .await
-            .map_err(|err| PlayerError::failed_to_get_prop("DesktioEntry", err.to_string()))?;
+            .map_err(|err| PlayerError::failed_to_get_prop("DesktopEntry", err.to_string()))?;
 
         Ok(desktop_entry)
     }
