@@ -12,7 +12,7 @@ pub enum PlaybackStatus {
 }
 
 /// Loop status of a player.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum LoopStatus {
     None,
     Track,
